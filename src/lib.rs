@@ -1,25 +1,7 @@
 use std::slice::Iter;
 
-fn main() {
-    println!("Hello, world!");
-    let mut bin = BinaryHeap::new();
-
-    bin.push(0);
-    bin.push(1);
-    bin.push(10);
-    dbg!(bin.pop());
-    dbg!(bin.pop());
-    dbg!(bin.pop());
-    bin.push(45);
-    bin.push(4534);
-    bin.push(4);
-    while !bin.is_empty() {
-        dbg!(bin.pop());
-    }
-}
-
 /// Min heap
-struct BinaryHeap<T: PartialOrd> {
+pub struct BinaryHeap<T: PartialOrd> {
     vec: Vec<T>,
 }
 impl<T: PartialOrd> BinaryHeap<T> {
@@ -89,6 +71,7 @@ impl<T: PartialOrd> BinaryHeap<T> {
             }
         }
     }
+    /// recursive version of flow down, may be more performant as it also uses vec_len
     fn flow_down_rec(&mut self, idx: usize, vec_len: usize) {
         let child_idx = 'blk: {
             let left_child_idx = (idx << 1) + 1;
@@ -138,9 +121,24 @@ impl<T: PartialOrd> BinaryHeap<T> {
         );
         &self.vec[0]
     }
+    pub fn from_unsorted_vec(vec: Vec<T>) -> Self {
+        let mut this = Self {vec};
+        let len = this.len();
+        let last_node_with_child = (len - 2) >> 1; // get node that FOR SURE has at least one child
+        for idx in (0..=last_node_with_child).rev() {
+            this.flow_down(idx);
+        }
+        this
+    }
 }
 
+impl<T: PartialOrd> Default for BinaryHeap<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
+#[cfg(test)]
 mod test {
     use std::{fs::File, io::Read};
 
@@ -181,5 +179,23 @@ mod test {
             
         }
         println!("watermark len: {}", watermark_len);
+    }
+
+    #[test]
+    fn initialize_from_array() {
+        use crate::BinaryHeap as MyHeap;
+        let vec = (0..10000).map(|x| (((x * 34829) << 2) + 23033948) % 234381).collect();
+        println!("{:?}", vec);
+
+        let mut res = MyHeap::from_unsorted_vec(vec);
+        let mut dump = Vec::new();
+        while !res.is_empty() {
+            let a = res.pop();
+            dump.push(a);
+        }
+        let mut check = dump.clone();
+        check.sort();
+        assert_eq!(dump, check);
+        //println!("{:?}", check);
     }
 }
